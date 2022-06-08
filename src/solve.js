@@ -17,22 +17,24 @@ puzzle:
 
 const puzzleSize = 9;
 const squareSize = puzzleSize / 3;
-
 const maxIterations = 100;
 
-
-const maxPrintRow = 3;
-const maxPrintCol = 3;
-
+/*
+ *  Returns:
+ *    {
+ *      puzzle: the original puzzle,
+ *      solution: the solution, or null if failed to solve,
+ *      iterations: number of iterations it took to solve
+ *    }
+ */
 const solve = puzzle => {
-    console.log("Solving puzzle: " + puzzle);
+    const originalPuzzle = copy(puzzle);
+
     /*
      *  Construct array of possible answers.  If an element at (r, c) is null, then the corresponding tile at (r, c)
      *  in the puzzle is already filled in.
      */
     const initPossibleLst = initPossible();
-    // printPossible(initPossibleLst);
-
     let possible = [...initPossibleLst];
     for (let r = 0; r < puzzleSize; r++) {
         for (let c = 0; c < puzzleSize; c++) { 
@@ -41,35 +43,20 @@ const solve = puzzle => {
             }
         }
     }
-    // printPossible(possible);
-
-
-    const rowsSolved = [];
-    const colsSolved = [];
-    const squaresSolved = [];
 
     let solved = false;
     let iterations = 0;
     while (!solved && iterations++ < maxIterations) {
-        console.log("Iteration #" + iterations);
-        console.log("Puzzle: " + puzzle);
-
         const initPuzzle = copy(puzzle);
-        console.log("InitPuzzle: " + initPuzzle);
-        // printPossible(possible, "BEFORE", maxPrintRow, maxPrintCol);
 
         /*
          *  Eliminate possibilities by row
          */
         for (let r = 0; r < puzzleSize; r++) {
-            // break;
             const inRow = [...puzzle[r]].filter(e => e);
             for (let c = 0; c < puzzleSize; c++) {
                 if (possible[r][c].length > 1) {
                     possible[r][c] = [...possible[r][c]].filter(e => !inRow.includes(e));
-                    if (possible[r][c].length == 1) {
-                        console.log(`resolved puzzle[${r}, ${c}] = ${possible[r][c]}`);
-                    }
                 }
             }
         }
@@ -78,7 +65,6 @@ const solve = puzzle => {
          *  Eliminate possibilities by column
          */
         for (let c = 0; c < puzzleSize; c++) {
-            // break;
             const inCol = []
             for (let r = 0; r < puzzleSize; r++) {
                 if (puzzle[r][c]) {
@@ -88,9 +74,6 @@ const solve = puzzle => {
             for (let r = 0; r < puzzleSize; r++) {
                 if (possible[r][c].length > 1) {
                     possible[r][c] = [...possible[r][c]].filter(e => !inCol.includes(e));
-                    if (possible[r][c].length == 1) {
-                        console.log(`resolved puzzle[${r}, ${c}] = ${possible[r][c]}`);
-                    }
                 }
             }
         }
@@ -114,9 +97,6 @@ const solve = puzzle => {
                     for (let c = initC; c < initC + squareSize; c++) {
                         if (possible[r][c].length > 1) {
                             possible[r][c] = [...possible[r][c]].filter(e => !inSquare.includes(e));
-                            if (possible[r][c].length == 1) {
-                                console.log(`resolved puzzle[${r}, ${c}] = ${possible[r][c]}`);
-                            }
                         }
                     }
                 }
@@ -127,14 +107,10 @@ const solve = puzzle => {
          *  Reduce puzzle
         */
         for (let r = 0; r < puzzleSize; r++) {
-            // break;
             for (let c = 0; c < puzzleSize; c++) {
                 const p = possible[r][c];
                 if (p.length == 1) {
-                    console.log(`!!! before, puzzle: ${puzzle[r][c]}, initPuzzle: ${initPuzzle[r][c]}`);
                     puzzle[r][c] = p[0];
-                    console.log(`!!! after, puzzle: ${puzzle[r][c]}, initPuzzle: ${initPuzzle[r][c]}`);
-                    // console.log(`Solved tile [${r}, ${c}] = ${p[0]}`);
                 }
             }
         }
@@ -144,31 +120,31 @@ const solve = puzzle => {
          */
         solved = isSolved(puzzle);
         if (solved) {
-            console.log(`Solved in ${iterations} iterations! Solution: ${puzzle}`);
-            prettyPrint(puzzle);
-            return puzzle;
+            return {
+                puzzle: originalPuzzle,
+                solution: puzzle,
+                iterations: iterations,
+            };
         }
-        console.log("Not solved");
-
-        // printPossible(possible, "AFTER", maxPrintRow, maxPrintCol);
 
         if (puzzlesEqual(initPuzzle, puzzle)) {
-            console.log(`No changes detected after ${iterations} iterations, unable to solve`);
-            console.log("Puzzle: " + puzzle);
-            return null;
+            return {
+                puzzle: originalPuzzle,
+                iterations: iterations,
+            };
         }
     }
 
-    console.log("Exceeded max iterations, unable to solve");
-    return null;
+    return {
+        puzzle: originalPuzzle,
+        iterations: iterations,
+    };;
 }
 
 const isSolved = (puzzle) => {
-    console.log("checking if solved: " + puzzle);
     for (let r = 0; r < puzzleSize; r++) {
         for (let c = 0; c < puzzleSize; c++) {
             if (!puzzle[r][c]) {
-                console.log(`   not solved, puzzle[${r}, ${c}]=${puzzle[r][c]}`);
                 return false;
             }
         }
@@ -193,9 +169,6 @@ const initPossible = () => {
 }
 
 const puzzlesEqual = (p1, p2) => {
-    console.log("checking equality");
-    console.log("\t puzzle1: " + p1);
-    console.log("\t puzzle2: " + p2);
     for (let r = 0; r < puzzleSize; r++) {
         for (let c = 0; c < puzzleSize; c++) {
             if (p1[r][c] !== p2[r][c]) {
@@ -206,50 +179,8 @@ const puzzlesEqual = (p1, p2) => {
     return true;
 }
 
-const printPossible = (possible, tag, maxR, maxC) => {
-    console.log(`POSSIBLE ${tag ? tag : ''}`);
-    for (let r = 0; r < puzzleSize; r++) {
-        if (maxR && r >= maxR) {
-            break;
-        }
-        for (let c = 0; c < puzzleSize; c++) {
-            if (maxC && c >= maxC) {
-                break;
-            }
-            console.log(`     possible[${r}, ${c}]: ${possible[r][c]}`);
-        }
-    }
-}
-
-const printPossibleRow = (possible, r) => {
-    console.log("POSSIBLE row " + r);
-    for (let c = 0; c < puzzleSize; c++) {
-        console.log(`     possible[${r}, ${c}]: ${possible[r][c]}`);
-    }
-}
-
 const copy = (arr) => {
     return arr.map(e => e.slice());
 }
-
-const prettyPrint = puzzle => {
-    console.log('*****************  SOLUTION  ********************');
-    for (let r = 0; r < puzzleSize; r++) {
-        if (r % squareSize == 0) {
-            console.log('\n');
-        }
-        let line = '';
-        for (let c = 0; c < puzzleSize; c++) {
-            if (c % squareSize == 0) {
-                line += '\t';
-            }
-            line += `${puzzle[r][c] }`;
-        }
-        console.log(line);
-    }
-    console.log('\n************************************************');
-}
-
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 module.exports = solve;
