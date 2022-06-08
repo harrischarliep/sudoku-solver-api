@@ -31,20 +31,49 @@ const solve = puzzle => {
     const originalPuzzle = copy(puzzle);
 
     /*
-     *  Construct array of possible answers.  If an element at (r, c) is null, then the corresponding tile at (r, c)
-     *  in the puzzle is already filled in.
+     *  Construct array of possible answers.
      */
     let possible = [...initPossible(puzzle)];
+
+    const iterateRows = f => {
+        for (let r = 0; r < puzzleSize; r++) {
+            f(r);
+        }
+    }
+
+    const iterateCols = f => {
+        for (let c = 0; c < puzzleSize; c++) {
+            f(c);
+        }
+    }
+
+    const iterateSquare = (sr, sc, f) => {
+        const initR = sr * squareSize;
+        const initC = sc * squareSize;
+        for (let r = initR; r < initR + squareSize; r++) {
+            for (let c = initC; c < initC + squareSize; c++) {
+                f(r, c);
+            }
+        }
+    }
+
+    const iterateSquares = f => {
+        for (let sr = 0; sr < squareSize; sr++) {
+            for (let sc = 0; sc < squareSize; sc++) {
+               iterateSquare(sr, sc, f);
+            }
+        }
+    }
 
     let solved = false;
     let iterations = 0;
     while (!solved && iterations++ < maxIterations) {
-        const initPuzzle = copy(puzzle);
+        const puzzleBefore = copy(puzzle);
 
         /*
          *  Eliminate possibilities by row
          */
-        for (let r = 0; r < puzzleSize; r++) {
+        const reduceRowFunc = r => {
             const inRow = [...puzzle[r]].filter(e => e);
             for (let c = 0; c < puzzleSize; c++) {
                 if (possible[r][c].length > 1) {
@@ -52,11 +81,12 @@ const solve = puzzle => {
                 }
             }
         }
+        iterateRows(reduceRowFunc);
 
         /*
          *  Eliminate possibilities by column
          */
-        for (let c = 0; c < puzzleSize; c++) {
+        const reduceColFunc = c => {
             const inCol = []
             for (let r = 0; r < puzzleSize; r++) {
                 if (puzzle[r][c]) {
@@ -69,31 +99,46 @@ const solve = puzzle => {
                 }
             }
         }
+        iterateCols(reduceColFunc);
 
         /*
          *  Eliminate possibilities by square
          */
-        for (let sr = 0; sr < squareSize; sr++) {
-            for (let sc = 0; sc < squareSize; sc++) {
-                const inSquare = []
-                const initR = sr * squareSize;
-                const initC = sc * squareSize;
-                for (let r = initR; r < initR + squareSize; r++) {
-                    for (let c = initC; c < initC + squareSize; c++) {
-                        if (puzzle[r][c]) {
-                            inSquare.push(puzzle[r][c]);
-                        }
-                    }
-                }
-                for (let r = initR; r < initR + squareSize; r++) {
-                    for (let c = initC; c < initC + squareSize; c++) {
-                        if (possible[r][c].length > 1) {
-                            possible[r][c] = [...possible[r][c]].filter(e => !inSquare.includes(e));
-                        }
-                    }
-                }
+        const inSquare = []
+        const calcInSquareFunc = (r, c) => {
+            if (puzzle[r][c]) {
+                inSquare.push(puzzle[r][c]);
             }
         }
+        iterateSquare(calcInSquareFunc);
+        const reduceSquareFunc = (r, c) => {
+            if (possible[r][c].length > 1) {
+                possible[r][c] = [...possible[r][c]].filter(e => !inSquare.includes(e));
+            }
+        }
+        iterateSquare(reduceSquareFunc);
+
+        // for (let sr = 0; sr < squareSize; sr++) {
+        //     for (let sc = 0; sc < squareSize; sc++) {
+        //         const initR = sr * squareSize;
+        //         const initC = sc * squareSize;
+        //         const inSquare = []
+        //         for (let r = initR; r < initR + squareSize; r++) {
+        //             for (let c = initC; c < initC + squareSize; c++) {
+        //                 if (puzzle[r][c]) {
+        //                     inSquare.push(puzzle[r][c]);
+        //                 }
+        //             }
+        //         }
+        //         for (let r = initR; r < initR + squareSize; r++) {
+        //             for (let c = initC; c < initC + squareSize; c++) {
+        //                 if (possible[r][c].length > 1) {
+        //                     possible[r][c] = [...possible[r][c]].filter(e => !inSquare.includes(e));
+        //                 }
+        //             }
+        //         }
+        //     }
+        // }
 
         /*
          *  Reduce puzzle
@@ -119,7 +164,7 @@ const solve = puzzle => {
             };
         }
 
-        if (puzzlesEqual(initPuzzle, puzzle)) {
+        if (puzzlesEqual(puzzleBefore, puzzle)) {
             return {
                 puzzle: originalPuzzle,
                 iterations: iterations,
