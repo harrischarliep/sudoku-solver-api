@@ -146,7 +146,7 @@ const solve = puzzle => {
         if (solved) {
             console.log(`Solved in ${iterations} iterations! Solution: ${puzzle}`);
             prettyPrint(puzzle);
-            return;
+            return puzzle;
         }
         console.log("Not solved");
 
@@ -155,10 +155,12 @@ const solve = puzzle => {
         if (puzzlesEqual(initPuzzle, puzzle)) {
             console.log(`No changes detected after ${iterations} iterations, unable to solve`);
             console.log("Puzzle: " + puzzle);
-            return;
+            return null;
         }
     }
 
+    console.log("Exceeded max iterations, unable to solve");
+    return null;
 }
 
 const isSolved = (puzzle) => {
