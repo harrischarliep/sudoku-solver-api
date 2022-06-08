@@ -34,15 +34,7 @@ const solve = puzzle => {
      *  Construct array of possible answers.  If an element at (r, c) is null, then the corresponding tile at (r, c)
      *  in the puzzle is already filled in.
      */
-    // const initPossibleLst = initPossible();
     let possible = [...initPossible(puzzle)];
-    // for (let r = 0; r < puzzleSize; r++) {
-    //     for (let c = 0; c < puzzleSize; c++) { 
-    //         if (puzzle[r][c] !== null) {
-    //             possible[r][c] = [puzzle[r][c]];
-    //         }
-    //     }
-    // }
 
     let solved = false;
     let iterations = 0;
