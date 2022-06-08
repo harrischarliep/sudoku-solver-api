@@ -1,186 +1,122 @@
-/*
-puzzle: 
-[
-    [(r0c0, r0c1, r0c2)     (r0c3 r0c4 r0c5)    (roc6 r0c7 r0c8)],
-    [(r1c0, r1c1, r1c2)     (r1c3 r1c4 r1c5)    (r1c6 r1c7 r1c8)],
-    [(r2c0, r2c1, r2c2)     (r2c3 r2c4 r2c5)    (r2c6 r2c7 r2c8)],
-
-    [(r3c0, r3c1, r3c2)     (r3c3 r3c4 r3c5)    (r3c6 r3c7 r3c8)],
-    [(r4c0, r4c1, r4c2)     (r4c3 r4c4 r4c5)    (r4c6 r4c7 r4c8)],
-    [(r5c0, r5c1, r5c2)     (r5c3 r5c4 r5c5)    (r5c6 r5c7 r5c8)],
-
-    [(r6c0, r6c1, r6c2)     (r6c3 r6c4 r6c5)    (r6c6 r6c7 r6c8)],
-    [(r7c0, r7c1, r7c2)     (r7c3 r7c4 r7c5)    (r7c6 r7c7 r7c8)],
-    [(r8c0, r8c1, r8c2)     (r8c3 r8c4 r0c5)    (r8c6 r8c7 r8c8)],
-]
-*/
-
 const puzzleSize = 9;
 const squareSize = puzzleSize / 3;
-const maxIterations = 100;
+const maxIterations = 10;
 
-/*
- *  Returns:
- *    {
- *      puzzle: the original puzzle,
- *      solution: the solution, or null if failed to solve,
- *      iterations: number of iterations it took to solve
- *    }
- */
-const solve = puzzle => {
-    const originalPuzzle = copy(puzzle);
+// TODO: move these into a separate utils module
+const divInt = (x, y) => Math.floor(x / y);
+const copy = arr => arr.map(e => e.slice());
+const invertCopy = arr => {
+    const inverted = [];
+    for (let c = 0; c < puzzleSize; c++) {
+        const col = [];
+        for (let r = 0; r < puzzleSize; r++) {
+            col.push(arr[r][c]);
+        }
+        inverted.push(col);
+    }
+    return inverted;
+}
+//
 
-    /*
-     *  Construct array of possible answers.  If an element at (r, c) is null, then the corresponding tile at (r, c)
-     *  in the puzzle is already filled in.
-     */
-    const initPossibleLst = initPossible();
-    let possible = [...initPossibleLst];
-    for (let r = 0; r < puzzleSize; r++) {
-        for (let c = 0; c < puzzleSize; c++) { 
-            if (puzzle[r][c] !== null) {
-                possible[r][c] = [puzzle[r][c]];
+const getRows = copy;
+
+const getCols = invertCopy;
+
+const getSquares = arr => {
+    const squareArr = [];
+    for (let sr = 0; sr < squareSize; sr++) {
+        for (let sc = 0; sc < squareSize; sc++) {
+            const initR = sr * squareSize;
+            const initC = sc * squareSize;
+            square = [];
+            for (let r = initR; r < initR + squareSize; r++) {
+                for (let c = initC; c < initC + squareSize; c++) {
+                    square.push(arr[r][c]);
+                }
             }
+            squareArr.push(square);
         }
     }
+    return squareArr;
+}
 
-    let solved = false;
-    let iterations = 0;
-    while (!solved && iterations++ < maxIterations) {
-        const initPuzzle = copy(puzzle);
+const rowToColCoords = (rowR, rowC) => [rowC, rowR];
 
-        /*
-         *  Eliminate possibilities by row
-         */
-        for (let r = 0; r < puzzleSize; r++) {
-            const inRow = [...puzzle[r]].filter(e => e);
-            for (let c = 0; c < puzzleSize; c++) {
-                if (possible[r][c].length > 1) {
-                    possible[r][c] = [...possible[r][c]].filter(e => !inRow.includes(e));
-                }
-            }
-        }
+// TODO: memoize these so we dont have to repeat the calculations over and over again
+const rowToSquareCoords = (rowR, rowC) => {
+    const quotR = divInt(rowR, squareSize);
+    const quotC = divInt(rowC, squareSize);
+    const squareR = (quotR * squareSize) + quotC;
 
-        /*
-         *  Eliminate possibilities by column
-         */
+    const remR = rowR % squareSize; 
+    const remC = rowC % squareSize;
+    const squareC = (remR * squareSize) + remC;
+    return [squareR, squareC];
+}
+
+const initPossibleVals = rows => {
+    const allPossibleVals = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const possibleVals = [];
+    let remaining = puzzleSize ** 2;
+    for (let r = 0; r < puzzleSize; r++) {
+        const row = [];
         for (let c = 0; c < puzzleSize; c++) {
-            const inCol = []
-            for (let r = 0; r < puzzleSize; r++) {
-                if (puzzle[r][c]) {
-                    inCol.push(puzzle[r][c]);
-                }
-            }
-            for (let r = 0; r < puzzleSize; r++) {
-                if (possible[r][c].length > 1) {
-                    possible[r][c] = [...possible[r][c]].filter(e => !inCol.includes(e));
-                }
-            }
+            const val = rows[r][c];
+            const col = val ? remaining-- && [val] : [...allPossibleVals];
+            row.push(col);
         }
+        possibleVals.push(row);
+    }
 
-        /*
-         *  Eliminate possibilities by square
-         */
-        for (let sr = 0; sr < squareSize; sr++) {
-            for (let sc = 0; sc < squareSize; sc++) {
-                const inSquare = []
-                const initR = sr * squareSize;
-                const initC = sc * squareSize;
-                for (let r = initR; r < initR + squareSize; r++) {
-                    for (let c = initC; c < initC + squareSize; c++) {
-                        if (puzzle[r][c]) {
-                            inSquare.push(puzzle[r][c]);
-                        }
-                    }
-                }
-                for (let r = initR; r < initR + squareSize; r++) {
-                    for (let c = initC; c < initC + squareSize; c++) {
-                        if (possible[r][c].length > 1) {
-                            possible[r][c] = [...possible[r][c]].filter(e => !inSquare.includes(e));
-                        }
-                    }
-                }
-            }
-        }
+    return [possibleVals, remaining];
+}
 
-        /*
-         *  Reduce puzzle
-        */
+const solve = puzzle => {
+    const rows = getRows(puzzle);
+    const cols = getCols(puzzle);
+    const squares = getSquares(puzzle);
+
+    let [possibleVals, remaining] = initPossibleVals(rows);
+    let solved = false;
+    let iteration = 0;
+    while (!solved && iteration < maxIterations) {
         for (let r = 0; r < puzzleSize; r++) {
             for (let c = 0; c < puzzleSize; c++) {
-                const p = possible[r][c];
-                if (p.length == 1) {
-                    puzzle[r][c] = p[0];
+                if (possibleVals[r][c].length === 1) {
+                    continue;
+                }
+    
+                const [rowR, rowC] = [r, c];
+                const inRow = [...rows[rowR]].filter(e => e); // filter out null/undefined
+    
+                const [colR, colC] = rowToColCoords(rowR, rowC);
+                const inCol = [...cols[colR]].filter(e => e);
+    
+                const [squareR, squareC] = rowToSquareCoords(rowR, rowC);
+                const inSquare = [...squares[squareR]].filter(e => e);
+
+                possibleVals[r][c] = [...possibleVals[r][c]].filter(e => !inRow.includes(e) && !inCol.includes(e) && !inSquare.includes(e));
+                if (possibleVals[r][c].length == 1) {
+                    const val = possibleVals[r][c][0];
+                    rows[rowR][rowC] = val;
+                    cols[colR][colC] = val;
+                    squares[squareR][squareC] = val;
+                    remaining--;
                 }
             }
         }
-
-        /*
-         *  Check if solved
-         */
-        solved = isSolved(puzzle);
-        if (solved) {
-            return {
-                puzzle: originalPuzzle,
-                solution: puzzle,
-                iterations: iterations,
-            };
+        if (remaining === 0) {
+            solved = true;
         }
-
-        if (puzzlesEqual(initPuzzle, puzzle)) {
-            return {
-                puzzle: originalPuzzle,
-                iterations: iterations,
-            };
-        }
+        iteration++;
     }
 
     return {
-        puzzle: originalPuzzle,
-        iterations: iterations,
-    };;
-}
-
-const isSolved = (puzzle) => {
-    for (let r = 0; r < puzzleSize; r++) {
-        for (let c = 0; c < puzzleSize; c++) {
-            if (!puzzle[r][c]) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-const initPossible = () => {
-    const possible = []
-    for (let r = 0; r < puzzleSize; r++) {
-        const row = []
-        for (let c = 0; c < puzzleSize; c++) {
-            const p = []
-            for (let i = 1; i <= puzzleSize; i++) {
-                p.push(i);
-            }
-            row.push(p);
-        }
-        possible.push(row);
-    }
-    return possible;
-}
-
-const puzzlesEqual = (p1, p2) => {
-    for (let r = 0; r < puzzleSize; r++) {
-        for (let c = 0; c < puzzleSize; c++) {
-            if (p1[r][c] !== p2[r][c]) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-const copy = (arr) => {
-    return arr.map(e => e.slice());
+        solved: solved,
+        iterations: iteration,
+        solution: solved ? rows : rows,
+        puzzle: puzzle,
+    };
 }
 
 module.exports = solve;
