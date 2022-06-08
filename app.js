@@ -1,7 +1,7 @@
 const express = require('express');
 const solve = require('./src/solve.js')
 const puzzle = require('./routes/api/puzzle');
-;
+let cors = require('cors');
 
 const app = express();
 
@@ -20,6 +20,10 @@ const app = express();
     // [null,  8,      1,          3,      null,   null,       5,      null,   null]
 // ];
 // solve(puzzle);
+
+app.use(cors({ origin: true, credentials: true }));
+
+
 
 // Init Middleware
 app.use(express.json({ extended: false }));
