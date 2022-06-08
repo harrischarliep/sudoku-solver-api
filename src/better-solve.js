@@ -1,14 +1,12 @@
 const puzzleSize = 9;
 const squareSize = puzzleSize / 3;
-const maxIterations = 100;
+const maxIterations = 10;
 
 // TODO: move these into a separate utils module
 const divInt = (x, y) => Math.floor(x / y);
-
 const copy = arr => {
     return arr.map(e => e.slice());
 }
-
 const invertCopy = arr => {
     const inverted = [];
     for (let c = 0; c < puzzleSize; c++) {
@@ -23,7 +21,9 @@ const invertCopy = arr => {
 //
 
 const getRows = copy;
+
 const getCols = invertCopy;
+
 const getSquares = arr => {
     const squareArr = [];
     for (let sr = 0; sr < squareSize; sr++) {
@@ -39,11 +39,12 @@ const getSquares = arr => {
             squareArr.push(square);
         }
     }
-    return square;
+    return squareArr;
 }
 
 const rowToColCoords = (rowR, rowC) => [rowC, rowR];
 
+// TODO: memoize these so we dont have to repeat the calculations over and over again
 const rowToSquareCoords = (rowR, rowC) => {
     const quotR = divInt(rowR, squareSize);
     const quotC = divInt(rowC, squareSize);
@@ -56,26 +57,32 @@ const rowToSquareCoords = (rowR, rowC) => {
 }
 
 const initPossibleVals = rows => {
-    const possibleVals = []
-    let remaining = puzzleSize**2;
+    // console.log('************************** InitPossibleValues **************************');
+    // console.log(rows);
+
+    const allPossibleVals = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const possibleVals = [];
+    let remaining = puzzleSize ** 2;
     for (let r = 0; r < puzzleSize; r++) {
-        const row = []
+        const row = [];
         for (let c = 0; c < puzzleSize; c++) {
-            const col = []
-            if (rows[r][c]) {
-                col.push(rows[r][c]);
+            const col = [];
+            const val = rows[r][c];
+            if (val) {
+                col.push([val]);
                 remaining--;
             } else {
-                const possible = []
-                for (let i = 1; i <= puzzleSize; i++) {
-                    possible.push(i);
-                }
-                col.push(possible);
+                col.push(...allPossibleVals);
             }
+            console.log(`col length: ${col.length}`);
             row.push(col);
         }
         possibleVals.push(row);
     }
+    
+    // logPossible(possibleVals);
+    // console.log('************************** InitPossibleValues **************************');
+
     return [possibleVals, remaining];
 }
 
@@ -85,13 +92,18 @@ const solve = puzzle => {
     const squares = getSquares(puzzle);
 
     let [possibleVals, remaining] = initPossibleVals(rows);
-
     let solved = false;
     let iteration = 0;
     while (!solved && iteration < maxIterations) {
+        console.log(`**************** ITERATION ${iteration + 1} ****************`);
+        // prettyPrint(rows, "rows");
+        // prettyPrint(cols, "cols");
+        // prettyPrint(squares, "squares");
+        // logPossible(possibleVals);
+
         for (let r = 0; r < puzzleSize; r++) {
             for (let c = 0; c < puzzleSize; c++) {
-                if (possibleVals[r][c].length == 1) {
+                if (possibleVals[r][c].length === 1) {
                     continue;
                 }
     
@@ -103,14 +115,23 @@ const solve = puzzle => {
     
                 const [squareR, squareC] = rowToSquareCoords(rowR, rowC);
                 const inSquare = [...squares[squareR]].filter(e => e);
+
+                // console.log(`inRow: ${inRow}`);
+                // console.log(`inCol${inCol}`);
+                // console.log(`inSquare: ${inSquare}`);
     
+                console.log(`BEFORE possibleVals[${r}][${c}]=${possibleVals[r][c]}`);
                 possibleVals[r][c] = [...possibleVals[r][c]].filter(e => !inRow.includes(e) && !inCol.includes(e) && !inSquare.includes(e));
+                console.log(`AFTER possibleVals[${r}][${c}]=${possibleVals[r][c]}`);
                 if (possibleVals[r][c].length == 1) {
                     const val = possibleVals[r][c][0];
+                    // console.log(`updating val: ${val}`);
+                    // console.log(`BEFORE rows: ${rows[rowR][rowC]}, cols: ${cols[colR][colC]}, squares: ${squares[squareR][squareC]}, remaining: ${remaining}`);
                     rows[rowR][rowC] = val;
                     cols[colR][colC] = val;
                     squares[squareR][squareC] = val;
                     remaining--;
+                    // console.log(`AFTER rows: ${rows[rowR][rowC]}, cols: ${cols[colR][colC]}, squares: ${squares[squareR][squareC]}, remaining: ${remaining}`);
                     console.log(`Resolved (${r}, ${c}) => ${val}, iteration #${iteration}, ${remaining} remaining`);
                 }
             }
@@ -119,15 +140,54 @@ const solve = puzzle => {
             solved = true;
         }
         iteration++;
+
+        console.log(`***********************************************************\n\n\n`);
+
+        // prettyPrint(rows);
     }
 
     return {
-        puzzle: puzzle,
+        solved: solved,
+        iterations: iteration,
         solution: solved ? rows : rows,
-        iterations: iteration
+        puzzle: puzzle,
     };
 }
 
+
+// TODO: remove logging
+const logPossible = possibleVals => {
+    console.log("Possible values: ");
+    for (let r = 0; r < puzzleSize; r++) {
+        for (let c = 0; c < puzzleSize; c++) {
+            const vals = possibleVals[r][c];
+            console.log(`\t (${r}, ${c}) => ${vals}`);
+        }
+    }
+}
+
+const prettyPrint = (arr, tag) => {
+    console.log(tag);
+    arr.forEach(e => console.log(`\t ${e}`));
+    // logMarker();
+    // for (let r = 0; r < puzzleSize; r++) {
+    //     let line;
+    //     for (let c = 0; c < puzzleSize; c++) {
+    //         if (c % squareSize == 0) {
+    //             line += '\t';
+    //         }
+    //         line += rows[r][c] + ' ';
+    //     }
+    //     if (r % squareSize == 0) {
+    //         console.log('\n');
+    //         console.log(line);
+    //     }
+    // }
+    // logMarker();
+}
+
+const logMarker = () => console.log('**********************************************************');
+//
 
 
 module.exports = solve;

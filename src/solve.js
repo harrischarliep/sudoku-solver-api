@@ -104,41 +104,41 @@ const solve = puzzle => {
         /*
          *  Eliminate possibilities by square
          */
-        const inSquare = []
-        const calcInSquareFunc = (r, c) => {
-            if (puzzle[r][c]) {
-                inSquare.push(puzzle[r][c]);
-            }
-        }
-        iterateSquare(calcInSquareFunc);
-        const reduceSquareFunc = (r, c) => {
-            if (possible[r][c].length > 1) {
-                possible[r][c] = [...possible[r][c]].filter(e => !inSquare.includes(e));
-            }
-        }
-        iterateSquare(reduceSquareFunc);
-
-        // for (let sr = 0; sr < squareSize; sr++) {
-        //     for (let sc = 0; sc < squareSize; sc++) {
-        //         const initR = sr * squareSize;
-        //         const initC = sc * squareSize;
-        //         const inSquare = []
-        //         for (let r = initR; r < initR + squareSize; r++) {
-        //             for (let c = initC; c < initC + squareSize; c++) {
-        //                 if (puzzle[r][c]) {
-        //                     inSquare.push(puzzle[r][c]);
-        //                 }
-        //             }
-        //         }
-        //         for (let r = initR; r < initR + squareSize; r++) {
-        //             for (let c = initC; c < initC + squareSize; c++) {
-        //                 if (possible[r][c].length > 1) {
-        //                     possible[r][c] = [...possible[r][c]].filter(e => !inSquare.includes(e));
-        //                 }
-        //             }
-        //         }
+        // const inSquare = []
+        // const calcInSquareFunc = (r, c) => {
+        //     if (puzzle[r][c]) {
+        //         inSquare.push(puzzle[r][c]);
         //     }
         // }
+        // iterateSquare(calcInSquareFunc);
+        // const reduceSquareFunc = (r, c) => {
+        //     if (possible[r][c].length > 1) {
+        //         possible[r][c] = [...possible[r][c]].filter(e => !inSquare.includes(e));
+        //     }
+        // }
+        // iterateSquare(reduceSquareFunc);
+
+        for (let sr = 0; sr < squareSize; sr++) {
+            for (let sc = 0; sc < squareSize; sc++) {
+                const initR = sr * squareSize;
+                const initC = sc * squareSize;
+                const inSquare = []
+                for (let r = initR; r < initR + squareSize; r++) {
+                    for (let c = initC; c < initC + squareSize; c++) {
+                        if (puzzle[r][c]) {
+                            inSquare.push(puzzle[r][c]);
+                        }
+                    }
+                }
+                for (let r = initR; r < initR + squareSize; r++) {
+                    for (let c = initC; c < initC + squareSize; c++) {
+                        if (possible[r][c].length > 1) {
+                            possible[r][c] = [...possible[r][c]].filter(e => !inSquare.includes(e));
+                        }
+                    }
+                }
+            }
+        }
 
         /*
          *  Reduce puzzle
