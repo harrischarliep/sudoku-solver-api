@@ -1,6 +1,6 @@
 const puzzleSize = 9;
 const squareSize = puzzleSize / 3;
-const maxIterations = 10;
+const maxIterations = 100;
 
 // TODO: move these into a separate utils module
 const divInt = (x, y) => Math.floor(x / y);
