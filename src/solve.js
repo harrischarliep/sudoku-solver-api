@@ -1,5 +1,6 @@
 const puzzleSize = 9;
 const squareSize = puzzleSize / 3;
+let solveId = 0; // unique integer identifying a solve instance, used only for logging
 
 // TODO: move these into a separate utils module
 const divInt = (x, y) => Math.floor(x / y);
@@ -70,22 +71,57 @@ const initPossibleVals = rows => {
     return [possibleVals, remaining];
 }
 
-const solve = (puzzle, maxIterations) => {
-    return bruteForce(puzzle, maxIterations);
+// TODO: clean up logging
+// TODO: use maxRecursiveDepth parameter, for now only going to a depth of 1
+const solve = (puzzle, maxIterations, maxRecursiveDepth) => {
+    console.log(`solve ${solveId++}, maxIterations: ${maxIterations}, maxRecursiveDepth: ${maxRecursiveDepth}, puzzle: ${puzzle}`);
+    const bruteForceSolution = bruteForce(puzzle, maxIterations);
+    if (bruteForceSolution.solved || bruteForceSolution.unsolvable) {
+        console.log(`solve ${solveId}, finished after brute force, solved: ${bruteForceSolution.solved}, unsolvable: ${bruteForceSolution.unsolvable}`);
+        return bruteForceSolution;
+    }
+
+    console.log(`solve ${solveId}, ${bruteForceSolution.remaining} tiles remaining after brute force, attempting recursive solve`);
+    const partial = bruteForceSolution.solution;
+    const possibleVals = initPossibleVals(partial);
+    for (let r = 0; r < puzzleSize; r++) {
+        for (let c = 0; c < puzzleSize; c++) {
+            // TODO: what if there are none with only 2 possible values? Instead find tile with fewest.  For now though this will probably work in most cases
+            if (possibleVals[r][c] === 2) {
+                possibleVals[r][c].forEach(v => {
+                    console.log(`solve ${solveId} attempting brute force for [${r}, ${c}] => ${v} with ${solution.remaining} remaining, partial: ${partialCopy}`);
+                    const partialCopy = copy(partial);
+                    partialCopy[r][c] = v;
+                    const solution = bruteForce(partialCopy, maxIterations);
+                    if (solution.solved) {
+                        console.log(`solve ${solveId}, brute force successful for [${r}, ${c}] => ${v}`);
+                        return solution;
+                    } else if (solution.unsolvable) {
+                        console.log(`solve ${solveId}, [${r}, ${c}] => ${v} unsolvable`);
+                    } else {
+                        console.log(`solve ${solveId}, brute force for [${r}, ${c}] => ${v} inconclusive, ${remaining}`);
+                    }
+                })
+            }
+        }
+    }
+
 }
 
 /*
 Determines as many tile values as possible through brute force means. Maintains three lists: rows, columns, and 3x3 squares.
 These lists are essentially each a copy of the puzzle with information displayed slightly differently.  As such, they must be
 kept in sync. It is far simpler to check which values are missing for a row/col/square when the corresponding rows/cols/squares
-are already grouped together, and the additional memory overhead is minimal since the puzzle size is fixed. 
+are already grouped together, while the additional memory overhead is minimal since the puzzle size is fixed. 
 
 May not be sufficient to fully solve a puzzle.
 
 Returns:
 {
     solved: boolean denoting whether the puzzle is fully solved,
+    unsolvable: boolean denoting whether the puzzle cannot be solved, e.g. because of having two of the same number in one column
     iterations: the number of loop iterations it took,
+    remaining: the number of tiles left to solve,
     solution: the resulting partial solution after filling in as many tiles as possible (complete solution if able to fully solve),
     puzzle: the original puzzle, untouched
 }
@@ -98,8 +134,10 @@ const bruteForce = (puzzle, maxIterations) => {
 
     let [possibleVals, remaining] = initPossibleVals(rows);
     let solved = false;
+    let unsolvable = false;
     let iteration = 0;
-    while (!solved && iteration < maxIterations) {
+    while (!solved && !unsolvable && iteration < maxIterations) {
+        const prevRemaining = remaining;
         for (let r = 0; r < puzzleSize; r++) {
             for (let c = 0; c < puzzleSize; c++) {
                 if (possibleVals[r][c].length === 1) {
@@ -116,24 +154,31 @@ const bruteForce = (puzzle, maxIterations) => {
                 const inSquare = [...squares[squareR]].filter(e => e);
 
                 possibleVals[r][c] = [...possibleVals[r][c]].filter(e => !inRow.includes(e) && !inCol.includes(e) && !inSquare.includes(e));
-                if (possibleVals[r][c].length == 1) {
+                if (possibleVals[r][c].length === 1) {
                     const val = possibleVals[r][c][0];
                     rows[rowR][rowC] = val;
                     cols[colR][colC] = val;
                     squares[squareR][squareC] = val;
                     remaining--;
+                } else if (possibleVals[r][c].length === 0) {
+                    unsolvable = true;
                 }
             }
         }
-        if (remaining === 0) {
-            solved = true;
-        }
+        solved = remaining === 0;
         iteration++;
+
+        // If no progress was made this loop, then no progress will be made in successive loops, so exit early
+        if (prevRemaining === remaining) {
+            break;
+        }
     }
 
     return {
         solved: solved,
+        unsolvable: unsolvable,
         iterations: iteration,
+        remaining: remaining,
         solution: rows,
         puzzle: puzzle,
     };
