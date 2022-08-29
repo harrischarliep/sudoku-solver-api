@@ -1,6 +1,5 @@
 const puzzleSize = 9;
 const squareSize = puzzleSize / 3;
-const maxIterations = 100;
 
 // TODO: move these into a separate utils module
 const divInt = (x, y) => Math.floor(x / y);
@@ -71,7 +70,28 @@ const initPossibleVals = rows => {
     return [possibleVals, remaining];
 }
 
-const solve = puzzle => {
+const solve = (puzzle, maxIterations) => {
+    return bruteForce(puzzle, maxIterations);
+}
+
+/*
+Determines as many tile values as possible through brute force means. Maintains three lists: rows, columns, and 3x3 squares.
+These lists are essentially each a copy of the puzzle with information displayed slightly differently.  As such, they must be
+kept in sync. It is far simpler to check which values are missing for a row/col/square when the corresponding rows/cols/squares
+are already grouped together, and the additional memory overhead is minimal since the puzzle size is fixed. 
+
+May not be sufficient to fully solve a puzzle.
+
+Returns:
+{
+    solved: boolean denoting whether the puzzle is fully solved,
+    iterations: the number of loop iterations it took,
+    solution: the resulting partial solution after filling in as many tiles as possible (complete solution if able to fully solve),
+    puzzle: the original puzzle, untouched
+}
+
+*/
+const bruteForce = (puzzle, maxIterations) => {
     const rows = getRows(puzzle);
     const cols = getCols(puzzle);
     const squares = getSquares(puzzle);
@@ -114,7 +134,7 @@ const solve = puzzle => {
     return {
         solved: solved,
         iterations: iteration,
-        solution: solved ? rows : rows,
+        solution: rows,
         puzzle: puzzle,
     };
 }
