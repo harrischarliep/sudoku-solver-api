@@ -74,7 +74,7 @@ const initPossibleVals = rows => {
 // TODO: clean up logging
 // TODO: use maxRecursiveDepth parameter, for now only going to a depth of 1
 const solve = (puzzle, maxIterations, maxRecursiveDepth) => {
-    console.log(`solve ${solveId++}, maxIterations: ${maxIterations}, maxRecursiveDepth: ${maxRecursiveDepth}, puzzle: ${puzzle}`);
+    console.log(`solve ${++solveId}, maxIterations: ${maxIterations}, maxRecursiveDepth: ${maxRecursiveDepth}, puzzle: ${puzzle}`);
     const bruteForceSolution = bruteForce(puzzle, maxIterations);
     if (bruteForceSolution.solved || bruteForceSolution.unsolvable) {
         console.log(`solve ${solveId}, finished after brute force, solved: ${bruteForceSolution.solved}, unsolvable: ${bruteForceSolution.unsolvable}`);
@@ -83,15 +83,15 @@ const solve = (puzzle, maxIterations, maxRecursiveDepth) => {
 
     console.log(`solve ${solveId}, ${bruteForceSolution.remaining} tiles remaining after brute force, attempting recursive solve`);
     const partial = bruteForceSolution.solution;
-    const possibleVals = initPossibleVals(partial);
+    const possibleVals = bruteForceSolution.possibleVals;
     for (let r = 0; r < puzzleSize; r++) {
         for (let c = 0; c < puzzleSize; c++) {
             // TODO: what if there are none with only 2 possible values? Instead find tile with fewest.  For now though this will probably work in most cases
-            if (possibleVals[r][c] === 2) {
+            if (possibleVals[r][c].length === 2) {
                 possibleVals[r][c].forEach(v => {
-                    console.log(`solve ${solveId} attempting brute force for [${r}, ${c}] => ${v} with ${solution.remaining} remaining, partial: ${partialCopy}`);
                     const partialCopy = copy(partial);
                     partialCopy[r][c] = v;
+                    console.log(`solve ${solveId} attempting brute force for [${r}, ${c}] => ${v} with ${bruteForceSolution.remaining} remaining, partial: ${partialCopy}`);
                     const solution = bruteForce(partialCopy, maxIterations);
                     if (solution.solved) {
                         console.log(`solve ${solveId}, brute force successful for [${r}, ${c}] => ${v}`);
@@ -99,13 +99,15 @@ const solve = (puzzle, maxIterations, maxRecursiveDepth) => {
                     } else if (solution.unsolvable) {
                         console.log(`solve ${solveId}, [${r}, ${c}] => ${v} unsolvable`);
                     } else {
-                        console.log(`solve ${solveId}, brute force for [${r}, ${c}] => ${v} inconclusive, ${remaining}`);
+                        console.log(`solve ${solveId}, brute force for [${r}, ${c}] => ${v} inconclusive, ${solution.remaining}`);
                     }
                 })
             }
         }
     }
 
+    console.log(`solve: ${solveId}, recursion failed, returning brute force partial solution`);
+    return bruteForceSolution;
 }
 
 /*
@@ -123,6 +125,7 @@ Returns:
     iterations: the number of loop iterations it took,
     remaining: the number of tiles left to solve,
     solution: the resulting partial solution after filling in as many tiles as possible (complete solution if able to fully solve),
+    possibleVals: array of possible values for each tile
     puzzle: the original puzzle, untouched
 }
 
@@ -162,9 +165,10 @@ const bruteForce = (puzzle, maxIterations) => {
                     remaining--;
                 } else if (possibleVals[r][c].length === 0) {
                     unsolvable = true;
-                }
+                }                
             }
-        }
+        }        
+
         solved = remaining === 0;
         iteration++;
 
@@ -180,6 +184,7 @@ const bruteForce = (puzzle, maxIterations) => {
         iterations: iteration,
         remaining: remaining,
         solution: rows,
+        possibleVals: possibleVals,
         puzzle: puzzle,
     };
 }
