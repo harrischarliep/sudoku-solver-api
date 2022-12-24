@@ -182,7 +182,7 @@ const bruteForce = (puzzle, maxIterations) => {
             for (let c = 0; c < puzzleSize; c++) {
                 if (possibleValsRows[r][c].length === 1) {
                     continue;
-                }
+                }   
     
                 const [rowR, rowC] = [r, c];
                 const inRow = [...rows[rowR]].filter(e => e); // filter out null/undefined
