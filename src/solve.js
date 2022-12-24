@@ -54,21 +54,56 @@ const rowToSquareCoords = (rowR, rowC) => {
     return [squareR, squareC];
 }
 
+
 const initPossibleVals = rows => {
-    const allPossibleVals = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-    const possibleVals = [];
-    let remaining = puzzleSize ** 2;
-    for (let r = 0; r < puzzleSize; r++) {
-        const row = [];
-        for (let c = 0; c < puzzleSize; c++) {
-            const val = rows[r][c];
-            const col = val ? remaining-- && [val] : [...allPossibleVals];
-            row.push(col);
+    const init3DArray = () => {
+        const arr1 = [];
+        for (let i1 = 0; i1 < puzzleSize; i1++) {
+          const arr2 = [];
+          for (let i2 = 0; i2 < puzzleSize; i2++) {
+            arr2.push([]);
+          }
+          arr1.push(arr2);
         }
-        possibleVals.push(row);
+        return arr1;
     }
 
-    return [possibleVals, remaining];
+    let remaining = puzzleSize ** 2;
+    const allPossibleVals = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    const possibleValsRows = init3DArray();
+    const possibleValsCols = init3DArray();
+    const possibleValsSquares = init3DArray();
+    for (let r = 0; r < puzzleSize; r++) {
+        for (let c = 0; c < puzzleSize; c++) {
+            const val = rows[r][c];
+            const possibleLst = val ? remaining-- && [val] : [...allPossibleVals];
+
+            const [rowR, rowC] = [r, c];
+            possibleValsRows[rowR][rowC] = [...possibleLst];
+
+            const [colR, colC] = rowToColCoords(rowR, rowC);
+            possibleValsCols[colR][colC] = [...possibleLst];
+
+            const [squareR, squareC] = rowToSquareCoords(rowR, rowC);
+            possibleValsSquares[colR][colC] = [...possibleLst];
+        }
+    }
+
+    return [possibleValsRows, possibleValsCols, possibleValsSquares, remaining];
+
+    // for (let r = 0; r < puzzleSize; r++) {
+    //     const row = [];
+    //     for (let c = 0; c < puzzleSize; c++) {
+    //         const val = rows[r][c];
+    //         const col = val ? remaining-- && [val] : [...allPossibleVals];
+    //         row.push(col);
+    //     }
+    //     possibleValsRows.push(row);
+    // }
+
+    
+
+    // return [possibleVals, remaining];
 }
 
 // TODO: clean up logging
@@ -135,15 +170,17 @@ const bruteForce = (puzzle, maxIterations) => {
     const cols = getCols(puzzle);
     const squares = getSquares(puzzle);
 
-    let [possibleVals, remaining] = initPossibleVals(rows);
+    let [possibleValsRows, possibleValsCols, possibleValsSquares, remaining] = initPossibleVals(rows);
     let solved = false;
     let unsolvable = false;
     let iteration = 0;
     while (!solved && !unsolvable && iteration < maxIterations) {
         const prevRemaining = remaining;
+
+        // Eliminate possibilities
         for (let r = 0; r < puzzleSize; r++) {
             for (let c = 0; c < puzzleSize; c++) {
-                if (possibleVals[r][c].length === 1) {
+                if (possibleValsRows[r][c].length === 1) {
                     continue;
                 }
     
@@ -156,18 +193,39 @@ const bruteForce = (puzzle, maxIterations) => {
                 const [squareR, squareC] = rowToSquareCoords(rowR, rowC);
                 const inSquare = [...squares[squareR]].filter(e => e);
 
-                possibleVals[r][c] = [...possibleVals[r][c]].filter(e => !inRow.includes(e) && !inCol.includes(e) && !inSquare.includes(e));
-                if (possibleVals[r][c].length === 1) {
-                    const val = possibleVals[r][c][0];
+                possibleValsRows[r][c] = [...possibleValsRows[r][c]].filter(e => !inRow.includes(e) && !inCol.includes(e) && !inSquare.includes(e));
+                possibleValsCols[colR][colC] = [...possibleValsRows[r][c]];
+                possibleValsSquares[squareR, squareC] = [...possibleValsRows[r][c]];
+                if (possibleValsRows[r][c].length === 1) {
+                    const val = possibleValsRows[r][c][0];
                     rows[rowR][rowC] = val;
                     cols[colR][colC] = val;
                     squares[squareR][squareC] = val;
                     remaining--;
-                } else if (possibleVals[r][c].length === 0) {
+                } else if (possibleValsRows[r][c].length === 0) {
                     unsolvable = true;
                 }                
             }
         }        
+
+        // Extrapolate
+        for (let r = 0; r < puzzleSize; r++) {
+            for (let val = 1; val <= 9; val++)  {
+
+                // Rows
+                let cols = [];
+                for (let c = 0; c < puzzleSize; c++) {
+                    if (possibleValsRows[r][c].length > 1 && possibleValsRows[r][c].contains(val)) {
+                        cols.push(c);
+                    }
+                }
+                if (cols.length === 1) {
+
+                }
+
+            }
+        }
+        
 
         solved = remaining === 0;
         iteration++;
@@ -184,7 +242,7 @@ const bruteForce = (puzzle, maxIterations) => {
         iterations: iteration,
         remaining: remaining,
         solution: rows,
-        possibleVals: possibleVals,
+        possibleVals: possibleValsRows,
         puzzle: puzzle,
     };
 }
